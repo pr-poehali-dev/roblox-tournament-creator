@@ -1,0 +1,54 @@
+{
+  "tests": [
+    {
+      "name": "Test OPTIONS for CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Test GET all tournaments",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "tournaments": []
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Test POST create tournament",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "name": "Test Tournament",
+        "game_name": "Arsenal",
+        "roblox_server_url": "https://roblox.com/games/123456",
+        "max_players": 64,
+        "prize_robux": 5000,
+        "user_id": 1
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "success": true,
+        "tournament": {
+          "name": "Test Tournament"
+        }
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Test POST with missing fields",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "name": "Test"
+      },
+      "expectedStatus": 400,
+      "expectedBody": {
+        "error": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

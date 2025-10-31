@@ -24,11 +24,39 @@ interface User {
   team_name: string | null;
 }
 
+interface Tournament {
+  id: number;
+  name: string;
+  game: string;
+  robloxServerUrl: string;
+  maxPlayers: number;
+  prize: number;
+  players: number;
+  status: string;
+  startDate: string | null;
+  createdAt: string;
+  creator?: {
+    first_name: string;
+    last_name: string;
+    username: string;
+  };
+}
+
 const Index = () => {
   const [snowflakes, setSnowflakes] = useState<Array<{ id: number; left: number; delay: number; duration: number }>>([]);
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isLoadingTournaments, setIsLoadingTournaments] = useState(false);
+  const [newTournament, setNewTournament] = useState({
+    name: '',
+    game_name: '',
+    roblox_server_url: '',
+    max_players: 64,
+    prize_robux: 5000,
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -50,7 +78,24 @@ const Index = () => {
       setIsDarkMode(true);
       document.documentElement.classList.add('dark');
     }
+
+    loadTournaments();
   }, []);
+
+  const loadTournaments = async () => {
+    setIsLoadingTournaments(true);
+    try {
+      const response = await fetch('https://functions.poehali.dev/bcdfbe86-b6a2-4caa-9d27-53d91e51880f');
+      const data = await response.json();
+      if (data.tournaments) {
+        setTournaments(data.tournaments);
+      }
+    } catch (error) {
+      console.error('Failed to load tournaments:', error);
+    } finally {
+      setIsLoadingTournaments(false);
+    }
+  };
 
   const toggleTheme = () => {
     const newMode = !isDarkMode;
@@ -118,41 +163,68 @@ const Index = () => {
     handleTelegramAuth(telegramData);
   };
 
-  const activeTournaments = [
-    {
-      id: 1,
-      name: 'Новогодний Чемпионат 2025',
-      game: 'Arsenal',
-      players: 245,
-      maxPlayers: 256,
-      prize: '10,000 Robux',
-      status: 'Регистрация',
-      startDate: '1 января',
-      teams: 32,
-    },
-    {
-      id: 2,
-      name: 'Зимний PvP Турнир',
-      game: 'Blade Ball',
-      players: 128,
-      maxPlayers: 128,
-      prize: '5,000 Robux',
-      status: 'В игре',
-      startDate: 'Сейчас',
-      teams: 16,
-    },
-    {
-      id: 3,
-      name: 'Рождественская Битва',
-      game: 'Combat Warriors',
-      players: 89,
-      maxPlayers: 128,
-      prize: '7,500 Robux',
-      status: 'Регистрация',
-      startDate: '25 декабря',
-      teams: 16,
-    },
-  ];
+  const handleCreateTournament = async () => {
+    if (!user) {
+      toast({
+        title: '⚠️ Требуется авторизация',
+        description: 'Войдите через Telegram, чтобы создать турнир',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!newTournament.name || !newTournament.game_name || !newTournament.roblox_server_url) {
+      toast({
+        title: '⚠️ Заполните все поля',
+        description: 'Все поля обязательны для создания турнира',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch('https://functions.poehali.dev/bcdfbe86-b6a2-4caa-9d27-53d91e51880f', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...newTournament,
+          user_id: user.id,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: '✅ Турнир создан!',
+          description: `Турнир "${newTournament.name}" успешно создан`,
+        });
+        setIsCreateDialogOpen(false);
+        setNewTournament({
+          name: '',
+          game_name: '',
+          roblox_server_url: '',
+          max_players: 64,
+          prize_robux: 5000,
+        });
+        loadTournaments();
+      }
+    } catch (error) {
+      toast({
+        title: '❌ Ошибка создания',
+        description: 'Не удалось создать турнир',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Скоро';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+  };
 
   const pvpMatches = [
     { id: 1, player1: 'SnowKing', player2: 'FrostWarrior', game: 'Arsenal', status: 'live', viewers: 145 },
@@ -328,7 +400,7 @@ const Index = () => {
           <TabsContent value="tournaments" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-2xl font-bold">Активные турниры</h3>
-              <Dialog>
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                 <DialogTrigger asChild>
                   <Button size="lg">
                     <Icon name="Plus" className="mr-2 h-5 w-5" />
@@ -338,73 +410,123 @@ const Index = () => {
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Создать новый турнир</DialogTitle>
-                    <DialogDescription>Заполните информацию о турнире</DialogDescription>
+                    <DialogDescription>Заполните информацию о турнире в Roblox</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
                       <Label>Название турнира</Label>
-                      <Input placeholder="Новогодний турнир" />
+                      <Input 
+                        placeholder="Новогодний турнир" 
+                        value={newTournament.name}
+                        onChange={(e) => setNewTournament({...newTournament, name: e.target.value})}
+                      />
                     </div>
                     <div>
                       <Label>Игра Roblox</Label>
-                      <Input placeholder="Arsenal, Blade Ball, Combat Warriors..." />
+                      <Input 
+                        placeholder="Arsenal, Blade Ball, Combat Warriors..." 
+                        value={newTournament.game_name}
+                        onChange={(e) => setNewTournament({...newTournament, game_name: e.target.value})}
+                      />
                     </div>
                     <div>
-                      <Label>Количество команд</Label>
-                      <Input type="number" placeholder="16" />
+                      <Label>Ссылка на сервер Roblox</Label>
+                      <Input 
+                        placeholder="https://www.roblox.com/games/..." 
+                        value={newTournament.roblox_server_url}
+                        onChange={(e) => setNewTournament({...newTournament, roblox_server_url: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label>Максимум игроков</Label>
+                      <Input 
+                        type="number" 
+                        placeholder="64" 
+                        value={newTournament.max_players}
+                        onChange={(e) => setNewTournament({...newTournament, max_players: parseInt(e.target.value)})}
+                      />
                     </div>
                     <div>
                       <Label>Призовой фонд (Robux)</Label>
-                      <Input type="number" placeholder="5000" />
+                      <Input 
+                        type="number" 
+                        placeholder="5000" 
+                        value={newTournament.prize_robux}
+                        onChange={(e) => setNewTournament({...newTournament, prize_robux: parseInt(e.target.value)})}
+                      />
                     </div>
-                    <Button className="w-full">Создать турнир</Button>
+                    <Button className="w-full" onClick={handleCreateTournament}>
+                      <Icon name="Sparkles" className="mr-2 h-4 w-4" />
+                      Создать турнир
+                    </Button>
                   </div>
                 </DialogContent>
               </Dialog>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {activeTournaments.map((tournament) => (
-                <Card key={tournament.id} className="hover:shadow-lg transition-all hover-scale border-2">
-                  <CardHeader>
-                    <div className="flex justify-between items-start mb-2">
-                      <CardTitle className="text-xl">{tournament.name}</CardTitle>
-                      <Badge variant={tournament.status === 'В игре' ? 'destructive' : 'default'}>
-                        {tournament.status}
-                      </Badge>
-                    </div>
-                    <CardDescription className="flex items-center gap-2">
-                      <Icon name="Gamepad2" className="h-4 w-4" />
-                      {tournament.game}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Игроков:</span>
-                      <span className="font-semibold">
-                        {tournament.players}/{tournament.maxPlayers}
-                      </span>
-                    </div>
-                    <Progress value={(tournament.players / tournament.maxPlayers) * 100} className="h-2" />
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Команд:</span>
-                      <span className="font-semibold">{tournament.teams}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-accent font-bold text-lg">
-                      <Icon name="Trophy" className="h-5 w-5" />
-                      {tournament.prize}
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Icon name="Calendar" className="h-4 w-4" />
-                      Старт: {tournament.startDate}
-                    </div>
-                    <Button className="w-full" variant={tournament.status === 'В игре' ? 'outline' : 'default'}>
-                      {tournament.status === 'В игре' ? 'Смотреть' : 'Зарегистрироваться'}
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            {isLoadingTournaments ? (
+              <div className="text-center py-12">
+                <Icon name="Loader2" className="h-8 w-8 animate-spin mx-auto text-primary" />
+                <p className="text-muted-foreground mt-4">Загрузка турниров...</p>
+              </div>
+            ) : tournaments.length === 0 ? (
+              <div className="text-center py-12">
+                <Icon name="Trophy" className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                <p className="text-xl font-semibold mb-2">Пока нет турниров</p>
+                <p className="text-muted-foreground">Создайте первый турнир!</p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {tournaments.map((tournament) => (
+                  <Card key={tournament.id} className="hover:shadow-lg transition-all hover-scale border-2">
+                    <CardHeader>
+                      <div className="flex justify-between items-start mb-2">
+                        <CardTitle className="text-xl">{tournament.name}</CardTitle>
+                        <Badge variant={tournament.status === 'registration' ? 'default' : 'destructive'}>
+                          {tournament.status === 'registration' ? 'Регистрация' : 'В игре'}
+                        </Badge>
+                      </div>
+                      <CardDescription className="flex items-center gap-2">
+                        <Icon name="Gamepad2" className="h-4 w-4" />
+                        {tournament.game}
+                      </CardDescription>
+                      {tournament.creator && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Создатель: {tournament.creator.first_name} {tournament.creator.last_name}
+                        </p>
+                      )}
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Игроков:</span>
+                        <span className="font-semibold">
+                          {tournament.players}/{tournament.maxPlayers}
+                        </span>
+                      </div>
+                      <Progress value={(tournament.players / tournament.maxPlayers) * 100} className="h-2" />
+                      <div className="flex items-center gap-2 text-accent font-bold text-lg">
+                        <Icon name="Trophy" className="h-5 w-5" />
+                        {tournament.prize.toLocaleString()} Robux
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Icon name="Calendar" className="h-4 w-4" />
+                        Старт: {formatDate(tournament.startDate)}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          className="flex-1" 
+                          variant={tournament.status === 'registration' ? 'default' : 'outline'}
+                          onClick={() => window.open(tournament.robloxServerUrl, '_blank')}
+                        >
+                          <Icon name="ExternalLink" className="mr-2 h-4 w-4" />
+                          {tournament.status === 'registration' ? 'Войти на сервер' : 'Смотреть'}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="pvp" className="space-y-4">
