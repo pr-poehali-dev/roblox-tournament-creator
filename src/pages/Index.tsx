@@ -170,9 +170,9 @@ const Index = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8 animate-fade-in">
           <div className="flex items-center justify-center gap-3 mb-3">
-            <span className="text-4xl">🎄</span>
+            <span className="text-4xl"></span>
             <h2 className="text-5xl font-bold text-primary">Новогодний Турнирный Сезон</h2>
-            <span className="text-4xl">🎁</span>
+            <span className="text-4xl"></span>
           </div>
           <p className="text-xl text-muted-foreground">Создавай команды, участвуй в турнирах, побеждай в PvP!</p>
         </div>
