@@ -1,0 +1,36 @@
+{
+  "tests": [
+    {
+      "name": "Test OPTIONS for CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Test POST create report",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "user_id": 1,
+        "reported_player": "BadPlayer123",
+        "report_type": "cheating",
+        "description": "Using exploits in tournament"
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "success": true
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Test GET all reports",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "reports": []
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

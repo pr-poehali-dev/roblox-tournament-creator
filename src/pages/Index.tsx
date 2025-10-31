@@ -10,6 +10,8 @@ import Icon from '@/components/ui/icon';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import VipServersTab from '@/components/VipServersTab';
+import ReportsTab from '@/components/ReportsTab';
 
 interface User {
   id: number;
@@ -161,6 +163,44 @@ const Index = () => {
       photo_url: '',
     };
     handleTelegramAuth(telegramData);
+  };
+
+  const handleRobloxAuth = async () => {
+    const robloxUserId = prompt('Введите ваш Roblox User ID:');
+    const robloxUsername = prompt('Введите ваш Roblox никнейм:');
+    
+    if (!robloxUserId || !robloxUsername) return;
+    
+    try {
+      const response = await fetch('https://functions.poehali.dev/8ca9ea0f-f7d2-4007-9e14-4e54d7bf5502', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roblox_data: {
+            id: parseInt(robloxUserId),
+            name: robloxUsername,
+            displayName: robloxUsername,
+          },
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success && data.user) {
+        setUser(data.user);
+        localStorage.setItem('tournament_user', JSON.stringify(data.user));
+        toast({
+          title: '✅ Успешный вход!',
+          description: `Добро пожаловать, ${data.user.first_name}!`,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: '❌ Ошибка входа',
+        description: 'Не удалось войти через Roblox',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleCreateTournament = async () => {
@@ -358,10 +398,16 @@ const Index = () => {
                 </DialogContent>
               </Dialog>
             ) : (
-              <Button onClick={handleTelegramButtonClick} disabled={isAuthLoading}>
-                <Icon name="Send" className="mr-2 h-4 w-4" />
-                {isAuthLoading ? 'Вход...' : 'Войти через Telegram'}
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={handleRobloxAuth} disabled={isAuthLoading} variant="default">
+                  <Icon name="Gamepad2" className="mr-2 h-4 w-4" />
+                  {isAuthLoading ? 'Вход...' : 'Roblox'}
+                </Button>
+                <Button onClick={handleTelegramButtonClick} disabled={isAuthLoading} variant="outline">
+                  <Icon name="Send" className="mr-2 h-4 w-4" />
+                  Telegram
+                </Button>
+              </div>
             )}
           </div>
         </div>
@@ -378,14 +424,22 @@ const Index = () => {
         </div>
 
         <Tabs defaultValue="tournaments" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 h-auto">
+          <TabsList className="grid w-full grid-cols-6 h-auto">
             <TabsTrigger value="tournaments" className="text-base py-3">
               <Icon name="Trophy" className="mr-2 h-5 w-5" />
               Турниры
             </TabsTrigger>
+            <TabsTrigger value="vip-servers" className="text-base py-3">
+              <Icon name="Server" className="mr-2 h-5 w-5" />
+              VIP Серверы
+            </TabsTrigger>
             <TabsTrigger value="pvp" className="text-base py-3">
               <Icon name="Swords" className="mr-2 h-5 w-5" />
               PvP 1 на 1
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="text-base py-3">
+              <Icon name="Flag" className="mr-2 h-5 w-5" />
+              Отзывы/Жалобы
             </TabsTrigger>
             <TabsTrigger value="leaderboard" className="text-base py-3">
               <Icon name="BarChart3" className="mr-2 h-5 w-5" />
@@ -529,6 +583,10 @@ const Index = () => {
             )}
           </TabsContent>
 
+          <TabsContent value="vip-servers">
+            <VipServersTab user={user} />
+          </TabsContent>
+
           <TabsContent value="pvp" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-2xl font-bold">PvP матчи 1 на 1</h3>
@@ -582,6 +640,10 @@ const Index = () => {
                 </Card>
               ))}
             </div>
+          </TabsContent>
+
+          <TabsContent value="reports">
+            <ReportsTab user={user} />
           </TabsContent>
 
           <TabsContent value="leaderboard" className="space-y-4">

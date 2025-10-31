@@ -1,0 +1,35 @@
+{
+  "tests": [
+    {
+      "name": "Test OPTIONS for CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Test GET all VIP servers",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "servers": []
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Test POST create VIP server",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "game_name": "Arsenal",
+        "server_url": "https://www.roblox.com/games/286090429/vip-server",
+        "user_id": 1
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "success": true
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

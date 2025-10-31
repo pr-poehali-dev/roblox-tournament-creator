@@ -1,4 +1,7 @@
 {
+  "vip-servers": "https://functions.poehali.dev/ba1a4360-7539-430e-8cf4-a94e8dd83efa",
+  "roblox-auth": "https://functions.poehali.dev/8ca9ea0f-f7d2-4007-9e14-4e54d7bf5502",
+  "reports": "https://functions.poehali.dev/fb17521b-3570-4496-928f-9cc3b7ff4b08",
   "tournaments": "https://functions.poehali.dev/bcdfbe86-b6a2-4caa-9d27-53d91e51880f",
   "telegram-auth": "https://functions.poehali.dev/6a404a77-50e6-42fd-baa3-b91c6df00498"
 }

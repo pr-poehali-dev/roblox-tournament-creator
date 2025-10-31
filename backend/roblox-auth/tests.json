@@ -1,0 +1,43 @@
+{
+  "tests": [
+    {
+      "name": "Test OPTIONS for CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Test POST with Roblox data",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "roblox_data": {
+          "id": 123456789,
+          "name": "TestPlayer",
+          "displayName": "Test Player"
+        }
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "user": {
+          "roblox_id": 123456789
+        }
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Test POST without Roblox ID",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "roblox_data": {}
+      },
+      "expectedStatus": 400,
+      "expectedBody": {
+        "error": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
