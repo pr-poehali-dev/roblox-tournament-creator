@@ -28,6 +28,7 @@ const Index = () => {
   const [snowflakes, setSnowflakes] = useState<Array<{ id: number; left: number; delay: number; duration: number }>>([]);
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -43,7 +44,26 @@ const Index = () => {
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     }
+
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      setIsDarkMode(true);
+      document.documentElement.classList.add('dark');
+    }
   }, []);
+
+  const toggleTheme = () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    
+    if (newMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
 
   const handleTelegramAuth = async (telegramUser: any) => {
     setIsAuthLoading(true);
@@ -156,11 +176,11 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-blue-50 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative overflow-hidden transition-colors duration-300">
       {snowflakes.map((flake) => (
         <div
           key={flake.id}
-          className="snowflake text-blue-200 text-2xl"
+          className="snowflake text-blue-200 dark:text-blue-400 text-2xl"
           style={{
             left: `${flake.left}%`,
             animationDelay: `${flake.delay}s`,
@@ -172,7 +192,7 @@ const Index = () => {
         </div>
       ))}
 
-      <nav className="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-blue-100 shadow-sm">
+      <nav className="sticky top-0 z-50 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-blue-100 dark:border-gray-700 shadow-sm transition-colors duration-300">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="text-4xl animate-float">🎮</div>
@@ -197,6 +217,9 @@ const Index = () => {
             <Button variant="ghost" size="sm">
               <Icon name="Users" className="mr-2 h-4 w-4" />
               Команды
+            </Button>
+            <Button variant="ghost" size="icon" onClick={toggleTheme}>
+              <Icon name={isDarkMode ? 'Sun' : 'Moon'} className="h-5 w-5" />
             </Button>
 {user ? (
               <Dialog>
@@ -542,7 +565,7 @@ const Index = () => {
         </Tabs>
       </div>
 
-      <footer className="mt-16 border-t bg-white/50 backdrop-blur-sm">
+      <footer className="mt-16 border-t bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm transition-colors duration-300">
         <div className="container mx-auto px-4 py-8 text-center text-muted-foreground">
           <p className="flex items-center justify-center gap-2 text-lg">
             <span className="text-2xl">🎮</span>
