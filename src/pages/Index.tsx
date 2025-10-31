@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,8 +11,24 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+interface User {
+  id: number;
+  telegram_id: number;
+  username: string;
+  first_name: string;
+  last_name: string;
+  photo_url: string;
+  wins: number;
+  losses: number;
+  rating: number;
+  team_name: string | null;
+}
+
 const Index = () => {
   const [snowflakes, setSnowflakes] = useState<Array<{ id: number; left: number; delay: number; duration: number }>>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     const flakes = Array.from({ length: 50 }, (_, i) => ({
@@ -21,7 +38,65 @@ const Index = () => {
       duration: 10 + Math.random() * 10,
     }));
     setSnowflakes(flakes);
+
+    const savedUser = localStorage.getItem('tournament_user');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
   }, []);
+
+  const handleTelegramAuth = async (telegramUser: any) => {
+    setIsAuthLoading(true);
+    try {
+      const response = await fetch('https://functions.poehali.dev/6a404a77-50e6-42fd-baa3-b91c6df00498', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          telegram_data: telegramUser,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success && data.user) {
+        setUser(data.user);
+        localStorage.setItem('tournament_user', JSON.stringify(data.user));
+        toast({
+          title: '✅ Успешный вход!',
+          description: `Добро пожаловать, ${data.user.first_name}!`,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: '❌ Ошибка входа',
+        description: 'Не удалось войти через Telegram',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem('tournament_user');
+    toast({
+      title: 'Вы вышли из аккаунта',
+    });
+  };
+
+  const handleTelegramButtonClick = () => {
+    const telegramData = {
+      id: Math.floor(Math.random() * 1000000000),
+      username: 'demo_user',
+      first_name: 'Демо',
+      last_name: 'Игрок',
+      photo_url: '',
+    };
+    handleTelegramAuth(telegramData);
+  };
 
   const activeTournaments = [
     {
@@ -123,46 +198,76 @@ const Index = () => {
               <Icon name="Users" className="mr-2 h-4 w-4" />
               Команды
             </Button>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button>
-                  <Icon name="UserCircle" className="mr-2 h-4 w-4" />
-                  Профиль
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Профиль игрока</DialogTitle>
-                  <DialogDescription>Ваша статистика и достижения</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <Avatar className="h-20 w-20">
-                      <AvatarFallback className="bg-primary text-primary-foreground text-2xl">ИГ</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h3 className="font-bold text-xl">Имя Игрока</h3>
-                      <p className="text-sm text-muted-foreground">Рейтинг: 1850</p>
-                      <Badge className="mt-1">Участник турниров</Badge>
+{user ? (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Icon name="UserCircle" className="mr-2 h-4 w-4" />
+                    {user.first_name}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Профиль игрока</DialogTitle>
+                    <DialogDescription>Ваша статистика и достижения</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-20 w-20">
+                        {user.photo_url ? (
+                          <AvatarImage src={user.photo_url} />
+                        ) : (
+                          <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
+                            {user.first_name[0]}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <div>
+                        <h3 className="font-bold text-xl">{user.first_name} {user.last_name}</h3>
+                        {user.username && (
+                          <p className="text-sm text-muted-foreground">@{user.username}</p>
+                        )}
+                        <p className="text-sm text-muted-foreground">Рейтинг: {user.rating}</p>
+                        <Badge className="mt-1">Участник турниров</Badge>
+                      </div>
                     </div>
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div>
+                        <p className="text-2xl font-bold text-primary">{user.wins}</p>
+                        <p className="text-xs text-muted-foreground">Побед</p>
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-destructive">{user.losses}</p>
+                        <p className="text-xs text-muted-foreground">Поражений</p>
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-accent">
+                          {user.wins + user.losses > 0
+                            ? Math.round((user.wins / (user.wins + user.losses)) * 100)
+                            : 0}%
+                        </p>
+                        <p className="text-xs text-muted-foreground">Винрейт</p>
+                      </div>
+                    </div>
+                    {user.team_name && (
+                      <div className="p-3 bg-secondary/20 rounded-lg">
+                        <p className="text-sm text-muted-foreground">Команда</p>
+                        <p className="font-bold">{user.team_name}</p>
+                      </div>
+                    )}
+                    <Button onClick={handleLogout} variant="outline" className="w-full">
+                      <Icon name="LogOut" className="mr-2 h-4 w-4" />
+                      Выйти
+                    </Button>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div>
-                      <p className="text-2xl font-bold text-primary">24</p>
-                      <p className="text-xs text-muted-foreground">Побед</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-destructive">12</p>
-                      <p className="text-xs text-muted-foreground">Поражений</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-accent">66%</p>
-                      <p className="text-xs text-muted-foreground">Винрейт</p>
-                    </div>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogContent>
+              </Dialog>
+            ) : (
+              <Button onClick={handleTelegramButtonClick} disabled={isAuthLoading}>
+                <Icon name="Send" className="mr-2 h-4 w-4" />
+                {isAuthLoading ? 'Вход...' : 'Войти через Telegram'}
+              </Button>
+            )}
           </div>
         </div>
       </nav>

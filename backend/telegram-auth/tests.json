@@ -1,0 +1,44 @@
+{
+  "tests": [
+    {
+      "name": "Test OPTIONS for CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Test POST with telegram data",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "telegram_data": {
+          "id": 123456789,
+          "username": "testuser",
+          "first_name": "Test",
+          "last_name": "User"
+        }
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "user": {
+          "telegram_id": 123456789
+        }
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Test POST without telegram_id",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "telegram_data": {}
+      },
+      "expectedStatus": 400,
+      "expectedBody": {
+        "error": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
